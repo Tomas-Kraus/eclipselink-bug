@@ -26,7 +26,7 @@ public class Creature {
     private int id;
     private String name;
     @Column
-    protected boolean alive;
+    protected Boolean alive;
 
     public Creature(int id, String name, boolean alive) {
         this.id = id;
