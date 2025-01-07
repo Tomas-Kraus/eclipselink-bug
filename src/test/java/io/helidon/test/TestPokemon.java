@@ -53,11 +53,17 @@ public class TestPokemon {
 
     @Test
     public void testSelect() {
-        try (EntityManager em = EMF.createEntityManager()) {
+        EntityManager em = null;
+        try {
+            em = EMF.createEntityManager();
             List<Pokemon> pokemons = em.createNamedQuery("Pokemon.alive", Pokemon.class)
                     .setParameter("alive", true)
                     .getResultList();
             assertThat(pokemons.size(), is(POKEMONS.length - 1));
+        } finally {
+            if (em != null) {
+                em.close();
+            }
         }
     }
 
@@ -96,7 +102,9 @@ public class TestPokemon {
         }
         EMF = emf;
         // Initialize data
-        try (EntityManager em = EMF.createEntityManager()) {
+        EntityManager em = null;
+        try {
+            em = EMF.createEntityManager();
             EntityTransaction et = em.getTransaction();
             et.begin();
             try {
@@ -106,6 +114,10 @@ public class TestPokemon {
             } catch (Exception e) {
                 et.rollback();
                 throw e;
+            }
+        } finally {
+            if (em != null) {
+                em.close();
             }
         }
     }
