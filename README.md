@@ -14,12 +14,12 @@
 
 # EclipseLink bug test
 
-Simple application to reproduce EclipseLink bug based on _Helidon_, _Testcontainers for Java_
+Simple application to reproduce EclipseLink bug based on _Docker_, _Helidon_, _Testcontainers for Java_
 and _EclipseLink_.
 
 ## Usage
 
-To run the test, simply run maven build:
+To run the test, make sure you have Docker running and simply run maven build:
 ```
     mvn clean verify
 ```
