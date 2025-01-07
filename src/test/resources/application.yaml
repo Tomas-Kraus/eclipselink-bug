@@ -13,10 +13,23 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 #
+
+persistence-unit-name: "test"
+provider-class-name: "org.eclipse.persistence.jpa.PersistenceProvider"
+transaction-type: "RESOURCE_LOCAL"
 username: "test"
 password: "password"
 connection-string: "jdbc:mysql://localhost:3306/testdb"
 jdbc-driver-class-name: "com.mysql.cj.jdbc.Driver"
+managed-classes:
+    - "io.helidon.test.model.League"
+    - "io.helidon.test.model.Creature"
+    - "io.helidon.test.model.Pokemon"
+    - "io.helidon.test.model.Region"
+    - "io.helidon.test.model.Team"
+    - "io.helidon.test.model.Trainer"
+    - "io.helidon.test.model.Type"
+exclude-unlisted-classes: true
 properties:
   eclipselink.target-database: "MySQL"
   eclipselink.target-server: "None"

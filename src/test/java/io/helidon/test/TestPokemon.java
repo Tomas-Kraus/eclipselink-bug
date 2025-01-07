@@ -17,6 +17,7 @@ package io.helidon.test;
 
 import java.net.URI;
 import java.util.List;
+import java.util.Map;
 
 import io.helidon.config.Config;
 import io.helidon.test.data.InitialData;
@@ -26,9 +27,11 @@ import io.helidon.test.model.Pokemon;
 import jakarta.persistence.EntityManager;
 import jakarta.persistence.EntityManagerFactory;
 import jakarta.persistence.EntityTransaction;
-import jakarta.persistence.Persistence;
-import jakarta.persistence.PersistenceConfiguration;
-import jakarta.persistence.PersistenceUnitTransactionType;
+import jakarta.persistence.PersistenceException;
+import jakarta.persistence.spi.PersistenceProvider;
+import jakarta.persistence.spi.PersistenceProviderResolver;
+import jakarta.persistence.spi.PersistenceProviderResolverHolder;
+import jakarta.persistence.spi.PersistenceUnitInfo;
 import org.junit.AfterClass;
 import org.junit.BeforeClass;
 import org.junit.Test;
@@ -42,7 +45,7 @@ import static org.hamcrest.Matchers.is;
 public class TestPokemon {
 
     private static final MySQLContainer<?> CONTAINER = new MySQLContainer<>(DockerImageName.parse("mysql:8.0"));;
-    private static final PersistenceConfig CONFIG = PersistenceConfig.create(Config.create());
+    private static PersistenceConfig CONFIG = PersistenceConfig.create(Config.create());
     private static EntityManagerFactory EMF = null;
 
     public TestPokemon() {
@@ -69,26 +72,29 @@ public class TestPokemon {
         }
         CONFIG.username().ifPresent(CONTAINER::withUsername);
         CONFIG.password().ifPresent(TestPokemon::withPassword);
-        CONFIG.connectionString().ifPresent(TestPokemon::withDatabaseName);
+        TestPokemon.withDatabaseName(CONFIG.connectionString());
         CONTAINER.start();
-        // Persistence provider setup (spec 3.2)
-        String url = replacePortInUrl(CONFIG.connectionString().get(), CONTAINER.getMappedPort(3306));
-        PersistenceConfiguration persistenceConfiguration = new PersistenceConfiguration("test");
-        persistenceConfiguration.provider("org.eclipse.persistence.jpa.PersistenceProvider");
-        persistenceConfiguration.managedClass(io.helidon.test.model.League.class);
-        persistenceConfiguration.managedClass(io.helidon.test.model.Creature.class);
-        persistenceConfiguration.managedClass(io.helidon.test.model.Pokemon.class);
-        persistenceConfiguration.managedClass(io.helidon.test.model.Region.class);
-        persistenceConfiguration.managedClass(io.helidon.test.model.Team.class);
-        persistenceConfiguration.managedClass(io.helidon.test.model.Trainer.class);
-        persistenceConfiguration.managedClass(io.helidon.test.model.Type.class);
-        persistenceConfiguration.transactionType(PersistenceUnitTransactionType.RESOURCE_LOCAL);
-        CONFIG.properties().forEach(persistenceConfiguration::property);
-        persistenceConfiguration.property("jakarta.persistence.jdbc.driver", CONFIG.jdbcDriverClassName().get());
-        persistenceConfiguration.property("jakarta.persistence.jdbc.user", CONFIG.username().get());
-        persistenceConfiguration.property("jakarta.persistence.jdbc.password", new String(CONFIG.password().get()));
-        persistenceConfiguration.property("jakarta.persistence.jdbc.url", url);
-        EMF = Persistence.createEntityManagerFactory(persistenceConfiguration);
+        // Update configuration with container database port
+        String url = replacePortInUrl(CONFIG.connectionString(), CONTAINER.getMappedPort(3306));
+        CONFIG = PersistenceConfig.builder(CONFIG)
+                .connectionString(url)
+                .build();
+        // Persistence provider setup (spec < 3.2) based on Persistence.createEntityManagerFactory method
+        EntityManagerFactory emf = null;
+        PersistenceProviderResolver resolver = PersistenceProviderResolverHolder.getPersistenceProviderResolver();
+        List<PersistenceProvider> providers = resolver.getPersistenceProviders();
+        Map<String, Object> properties = Map.of();
+        PersistenceUnitInfo persistenceUnitInfo = new TestPuInfo(CONFIG);
+        for (PersistenceProvider provider : providers) {
+            emf = provider.createContainerEntityManagerFactory(persistenceUnitInfo, properties);
+            if (emf != null) {
+                break;
+            }
+        }
+        if (emf == null) {
+            throw new PersistenceException("No Persistence provider for EntityManager named " + CONFIG.persistenceUnitName());
+        }
+        EMF = emf;
         // Initialize data
         try (EntityManager em = EMF.createEntityManager()) {
             EntityTransaction et = em.getTransaction();
