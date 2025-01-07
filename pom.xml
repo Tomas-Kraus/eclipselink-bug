@@ -27,9 +27,9 @@
         <relativePath/>
     </parent>
 
-    <artifactId>hibernate-bug-test</artifactId>
+    <artifactId>eclipselink-bug-test</artifactId>
     <groupId>io.helidon.test</groupId>
-    <name>Hibernate bug reproduction scenario</name>
+    <name>EclipseLink bug reproduction scenario</name>
 
     <dependencies>
         <dependency>
