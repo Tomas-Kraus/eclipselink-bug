@@ -68,7 +68,7 @@ public class TestPokemon {
     @Test
     public void testSelectCity() {
         try (EntityManager em = EMF.createEntityManager()) {
-            List<String> cities = em.createQuery("SELECT name FROM City WHERE name = :name", String.class)
+            List<String> cities = em.createQuery("SELECT name FROM City WHERE name = :name ORDER BY population DESC", String.class)
                     .setParameter("name", "Prague")
                     .getResultList();
             assertThat(cities.size(), is(1));
@@ -80,7 +80,7 @@ public class TestPokemon {
     public void testSelectKeys() {
         try (EntityManager em = EMF.createEntityManager()) {
             List<CityId> cities = em.createQuery(
-                    "SELECT new io.helidon.test.model.CityId(c.name, c.stateName) FROM City c WHERE c.name = :name", CityId.class)
+                    "SELECT new io.helidon.test.model.CityId(c.name, c.stateName) FROM City c WHERE c.name = :name ORDER BY c.population DESC", CityId.class)
                     .setParameter("name", "Prague")
                     .getResultList();
             assertThat(cities.size(), is(1));
