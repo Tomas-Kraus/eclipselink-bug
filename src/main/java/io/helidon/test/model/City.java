@@ -15,36 +15,32 @@
  */
 package io.helidon.test.model;
 
-import java.util.Objects;
-
 import jakarta.persistence.Entity;
 import jakarta.persistence.Id;
+import jakarta.persistence.IdClass;
 import jakarta.persistence.Table;
 
 @Entity
-@Table(name = "TEAM")
-public class Team {
+@IdClass(CityId.class)
+@Table(name = "CITY")
+public class City {
 
     @Id
-    private int id;
-
     private String name;
 
-    public Team() {
-        this(-1, null);
+    @Id
+    private String stateName;
+
+    private long population;
+
+    public City() {
+        this(null, null, -1);
     }
 
-    public Team(int id, String name) {
-        this.id = id;
+    public City(String name, String stateName, long population) {
         this.name = name;
-    }
-
-    public int getId() {
-        return id;
-    }
-
-    public void setId(int id) {
-        this.id = id;
+        this.stateName = stateName;
+        this.population = population;
     }
 
     public String getName() {
@@ -55,30 +51,20 @@ public class Team {
         this.name = name;
     }
 
-    @Override
-    public boolean equals(Object obj) {
-        if (obj == null || obj.getClass() != this.getClass()) {
-            return false;
-        }
-        return id == ((Team) obj).id
-                && Objects.equals(name, ((Team) obj).name);
+    public String getStateName() {
+        return stateName;
     }
 
-    @Override
-    public int hashCode() {
-        int result = Objects.hash(id, name);
-        return result;
+    public void setStateName(String stateName) {
+        this.stateName = stateName;
     }
 
-    @Override
-    public String toString() {
-        StringBuilder sb = new StringBuilder();
-        sb.append("Team {id=");
-        sb.append(id);
-        sb.append(", name=");
-        sb.append(name);
-        sb.append("}");
-        return sb.toString();
+    public long getPopulation() {
+        return population;
+    }
+
+    public void setPopulation(long population) {
+        this.population = population;
     }
 
 }

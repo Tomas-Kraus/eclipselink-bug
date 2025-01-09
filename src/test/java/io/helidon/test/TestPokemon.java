@@ -26,7 +26,8 @@ import io.helidon.config.ConfigSources;
 import io.helidon.test.data.InitialData;
 import io.helidon.test.jakarta.PersistenceConfig;
 import io.helidon.test.jakarta.PersistenceUtils;
-import io.helidon.test.model.Pokemon;
+import io.helidon.test.model.City;
+import io.helidon.test.model.CityId;
 
 import jakarta.persistence.EntityManager;
 import jakarta.persistence.EntityManagerFactory;
@@ -38,7 +39,7 @@ import org.testcontainers.containers.GenericContainer;
 import org.testcontainers.containers.wait.strategy.Wait;
 import org.testcontainers.utility.DockerImageName;
 
-import static io.helidon.test.data.InitialData.POKEMONS;
+import static io.helidon.test.data.InitialData.CITIES;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.is;
 
@@ -55,12 +56,36 @@ public class TestPokemon {
     }
 
     @Test
-    public void testSelect() {
+    public void testSelectAll() {
         try (EntityManager em = EMF.createEntityManager()) {
-            List<Pokemon> pokemons = em.createNamedQuery("Pokemon.alive", Pokemon.class)
-                    .setParameter("alive", true)
+            List<City> cities = em.createQuery("SELECT c FROM City c", City.class)
+                    //.setParameter("alive", true)
                     .getResultList();
-            assertThat(pokemons.size(), is(POKEMONS.length - 1));
+            assertThat(cities.size(), is(CITIES.length - 1));
+        }
+    }
+
+    @Test
+    public void testSelectCity() {
+        try (EntityManager em = EMF.createEntityManager()) {
+            List<String> cities = em.createQuery("SELECT name FROM City WHERE name = :name", String.class)
+                    .setParameter("name", "Prague")
+                    .getResultList();
+            assertThat(cities.size(), is(1));
+            assertThat(cities.getFirst(), is("Prague"));
+        }
+    }
+
+    @Test
+    public void testSelectKeys() {
+        try (EntityManager em = EMF.createEntityManager()) {
+            List<CityId> cities = em.createQuery(
+                    "SELECT new io.helidon.test.model.CityId(c.name, c.stateName) FROM City c WHERE c.name = :name", CityId.class)
+                    .setParameter("name", "Prague")
+                    .getResultList();
+            assertThat(cities.size(), is(1));
+            assertThat(cities.getFirst().getName(), is("Prague"));
+            assertThat(cities.getFirst().getStateName(), is("Bohemia"));
         }
     }
 

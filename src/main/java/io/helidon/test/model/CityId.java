@@ -15,32 +15,19 @@
  */
 package io.helidon.test.model;
 
-import jakarta.persistence.Column;
-import jakarta.persistence.Id;
-import jakarta.persistence.MappedSuperclass;
+public class CityId {
 
-@MappedSuperclass
-public class Creature {
-
-    @Id
-    private int id;
     private String name;
-    @Column
-    protected boolean alive;
 
-    public Creature(int id, String name, boolean alive) {
-        this.id = id;
+    private String stateName;
+
+    public CityId() {
+        this(null, null);
+    }
+
+    public CityId(String name, String stateName) {
         this.name = name;
-        this.alive = alive;
-    }
-
-
-    public int getId() {
-        return id;
-    }
-
-    public void setId(int id) {
-        this.id = id;
+        this.stateName = stateName;
     }
 
     public String getName() {
@@ -51,12 +38,12 @@ public class Creature {
         this.name = name;
     }
 
-    public boolean isAlive() {
-        return alive;
+    public String getStateName() {
+        return stateName;
     }
 
-    public void setAlive(boolean alive) {
-        this.alive = alive;
+    public void setStateName(String stateName) {
+        this.stateName = stateName;
     }
 
 }
