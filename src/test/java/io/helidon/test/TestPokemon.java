@@ -16,6 +16,7 @@
 package io.helidon.test;
 
 import java.net.URI;
+import java.time.Duration;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -33,7 +34,8 @@ import jakarta.persistence.EntityTransaction;
 import org.junit.AfterClass;
 import org.junit.BeforeClass;
 import org.junit.Test;
-import org.testcontainers.containers.MySQLContainer;
+import org.testcontainers.containers.GenericContainer;
+import org.testcontainers.containers.wait.strategy.Wait;
 import org.testcontainers.utility.DockerImageName;
 
 import static io.helidon.test.data.InitialData.POKEMONS;
@@ -41,8 +43,10 @@ import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.is;
 
 public class TestPokemon {
-
-    private static final MySQLContainer<?> CONTAINER = new MySQLContainer<>(DockerImageName.parse("mysql:8.0"));;
+    private static final DockerImageName IMAGE = DockerImageName.parse(
+            "container-registry.oracle.com/database/free");
+    private static final GenericContainer<?> CONTAINER = new GenericContainer<>(IMAGE);
+    private static final int DB_PORT = 1521;
     private static Config CONFIG = Config.just(ConfigSources.classpath("application.yaml"));
     private static PersistenceConfig PERSISTENCE_CONFIG = PersistenceConfig.create(CONFIG);
     private static EntityManagerFactory EMF = null;
@@ -63,16 +67,15 @@ public class TestPokemon {
     @BeforeClass
     public static void before() {
         // Container setup and startup
-        CONTAINER.withUsername(PERSISTENCE_CONFIG.username());
-        CONTAINER.withPassword(new String(PERSISTENCE_CONFIG.password()));
-        CONTAINER.withDatabaseName(
-                dbNameFromUri(
-                        uriFromDbUrl(PERSISTENCE_CONFIG.connectionString())));
+        CONTAINER.withEnv("ORACLE_PWD", new String(PERSISTENCE_CONFIG.password()));
+        CONTAINER.withExposedPorts(DB_PORT)
+                .waitingFor(Wait.forHealthcheck()
+                                    .withStartupTimeout(Duration.ofMinutes(5)));
         CONTAINER.start();
         // Config update
         Map<String, String> updatedNodes = new HashMap<>(1);
         String url = replacePortInUrl(PERSISTENCE_CONFIG.connectionString(),
-                                      CONTAINER.getMappedPort(3306));
+                                      CONTAINER.getMappedPort(DB_PORT));
         updatedNodes.put("connection-string", url);
         CONFIG = Config.create(ConfigSources.create(updatedNodes),
                              ConfigSources.create(CONFIG));
@@ -157,7 +160,7 @@ public class TestPokemon {
         String scheme = src.substring(0, jdbcSep);
         if (!"jdbc".equals(scheme)) {
             throw new IllegalArgumentException(
-                    String.format("Database JDBC url shall start with \"jdbc:\" prefix, but URC is %s", src));
+                    String.format("Database JDBC url shall start with \"jdbc:\" prefix, but URL is %s", src));
         }
         if (src.length() > jdbcSep + 2) {
             int typeSep = src.indexOf(':', jdbcSep + 1);
