@@ -23,6 +23,7 @@ import java.util.Map;
 
 import io.helidon.config.Config;
 import io.helidon.config.ConfigSources;
+import io.helidon.logging.common.LogConfig;
 import io.helidon.test.data.InitialData;
 import io.helidon.test.jakarta.PersistenceConfig;
 import io.helidon.test.jakarta.PersistenceUtils;
@@ -34,7 +35,6 @@ import jakarta.persistence.EntityManagerFactory;
 import jakarta.persistence.EntityTransaction;
 import org.junit.AfterClass;
 import org.junit.BeforeClass;
-import org.junit.Test;
 import org.testcontainers.containers.GenericContainer;
 import org.testcontainers.containers.wait.strategy.Wait;
 import org.testcontainers.utility.DockerImageName;
@@ -43,7 +43,7 @@ import static io.helidon.test.data.InitialData.CITIES;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.is;
 
-public class TestPokemon {
+public class Test {
     private static final DockerImageName IMAGE = DockerImageName.parse(
             "container-registry.oracle.com/database/free");
     private static final GenericContainer<?> CONTAINER = new GenericContainer<>(IMAGE);
@@ -52,10 +52,10 @@ public class TestPokemon {
     private static PersistenceConfig PERSISTENCE_CONFIG = PersistenceConfig.create(CONFIG);
     private static EntityManagerFactory EMF = null;
 
-    public TestPokemon() {
+    public Test() {
     }
 
-    @Test
+    @org.junit.Test
     public void testSelectAll() {
         try (EntityManager em = EMF.createEntityManager()) {
             List<City> cities = em.createQuery("SELECT c FROM City c", City.class)
@@ -65,7 +65,7 @@ public class TestPokemon {
         }
     }
 
-    @Test
+    @org.junit.Test
     public void testSelectCity() {
         try (EntityManager em = EMF.createEntityManager()) {
             List<String> cities = em.createQuery("SELECT name FROM City WHERE name = :name ORDER BY population DESC", String.class)
@@ -76,7 +76,7 @@ public class TestPokemon {
         }
     }
 
-    @Test
+    @org.junit.Test
     public void testSelectKeys() {
         try (EntityManager em = EMF.createEntityManager()) {
             List<CityId> cities = em.createQuery(
@@ -91,6 +91,7 @@ public class TestPokemon {
 
     @BeforeClass
     public static void before() {
+        LogConfig.configureRuntime();
         // Container setup and startup
         CONTAINER.withEnv("ORACLE_PWD", new String(PERSISTENCE_CONFIG.password()));
         CONTAINER.withExposedPorts(DB_PORT)

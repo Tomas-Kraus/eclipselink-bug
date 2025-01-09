@@ -58,22 +58,14 @@ public class InitialData {
     }
 
     /**
-     * Verify database data
+     * Verify database data.
+     * Just logs number of the records in the database.
      */
     public static void verify(EntityManager em) {
         LOGGER.log(System.Logger.Level.DEBUG, "Data verification");
         List<City> pokemons = em.createQuery("SELECT c FROM City c", City.class)
                 .getResultList();
         LOGGER.log(System.Logger.Level.DEBUG, String.format(" - pokemons: %d", pokemons.size()));
-    }
-
-    /**
-     * Delete temporary data.
-     *
-     * @param em JPA {@link jakarta.persistence.EntityManager}
-     */
-    public static void deleteTemp(EntityManager em) {
-        em.createNamedQuery("Pokemon.deleteTemp").executeUpdate();
     }
 
 }
