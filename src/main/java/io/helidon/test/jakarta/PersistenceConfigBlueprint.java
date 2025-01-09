@@ -15,8 +15,8 @@
  */
 package io.helidon.test.jakarta;
 
+import java.util.List;
 import java.util.Map;
-import java.util.Optional;
 
 import io.helidon.builder.api.Option;
 import io.helidon.builder.api.Prototype;
@@ -26,12 +26,31 @@ import io.helidon.builder.api.Prototype;
 interface PersistenceConfigBlueprint {
 
     /**
+     * Persistence unit name.
+     *
+     * @return the persistence unit name
+     */
+    @Option.Configured
+    @Option.Default("@default")
+    String persistenceUnitName();
+
+    /**
+     * Persistence provider class name.
+     *
+     * @return the persistence provider class name
+     */
+    @Option.Configured
+    @Option.Default("")
+    String providerClassName();
+
+    /**
      * Database connection string.
      *
      * @return the connection string
      */
     @Option.Configured
-    Optional<String> connectionString();
+    @Option.Required
+    String connectionString();
 
     /**
      * Username for the database connection.
@@ -39,7 +58,8 @@ interface PersistenceConfigBlueprint {
      * @return the username
      */
     @Option.Configured
-    Optional<String> username();
+    @Option.Required
+    String username();
 
     /**
      * Password for the database connection.
@@ -48,7 +68,8 @@ interface PersistenceConfigBlueprint {
      */
     @Option.Configured
     @Option.Confidential
-    Optional<char[]> password();
+    @Option.Required
+    char[] password();
 
     /**
      * JDBC driver class for database connection.
@@ -56,7 +77,60 @@ interface PersistenceConfigBlueprint {
      * @return the JDBC driver class name
      */
     @Option.Configured
-    Optional<String> jdbcDriverClassName();
+    @Option.Required
+    String jdbcDriverClassName();
+
+    /**
+     * Managed persistence entities.
+     *
+     * @return the entities list
+     */
+    @Option.Configured
+    List<String> managedClasses();
+
+    /**
+     * Transaction type of the entity managers created by the {@link jakarta.persistence.EntityManagerFactory}.
+     *
+     * @return the transaction type.
+     */
+    @Option.Configured
+    @Option.Default("RESOURCE_LOCAL")
+    @Option.AllowedValue(value = "JTA", description = "Transaction management via JTA.")
+    @Option.AllowedValue(value = "RESOURCE_LOCAL", description = "Resource-local transaction management.")
+    String transactionType();
+
+    /**
+     * The validation mode to be used by the persistence provider for the persistence unit.
+     *
+     * @return the validation mode
+     */
+    @Option.Configured
+    @Option.Default("AUTO")
+    @Option.AllowedValue(value = "AUTO", description = "If a Bean Validation provider is present in the environment, "
+            + "the persistence provider must perform the automatic validation of entities. If no Bean Validation provider "
+            + "is present in the environment, no lifecycle event validation takes place. This is the default behavior.")
+    @Option.AllowedValue(value = "CALLBACK", description = "The persistence provider must perform the lifecycle event "
+            + "validation. It is an error if there is no Bean Validation provider present in the environment.")
+    @Option.AllowedValue(value = "NONE", description = "The persistence provider must not perform lifecycle event validation.")
+    String validationMode();
+
+    /**
+     * The specification of how the provider must use a second-level cache for the persistence unit.
+     *
+     * @return the shared cache mode
+     */
+    @Option.Configured
+    @Option.Default("UNSPECIFIED")
+    @Option.AllowedValue(value = "ALL", description = "All entities and entity-related state and data are cached.")
+    @Option.AllowedValue(value = "NONE", description = "Caching is disabled for the persistence unit.")
+    @Option.AllowedValue(value = "ENABLE_SELECTIVE", description = "Caching is enabled for all entities for which "
+            + "Cacheable(true) is specified. All other entities are not cached.")
+    @Option.AllowedValue(value = "DISABLE_SELECTIVE", description = "Caching is enabled for all entities except those "
+            + "for which Cacheable(false) is specified. Entities for which Cacheable(false) is specified "
+            + "are not cached.")
+    @Option.AllowedValue(value = "UNSPECIFIED", description = "Caching behavior is undefined: provider-specific defaults "
+            + "may apply.")
+    String sharedCacheMode();
 
     /**
      * Additional persistence unit or connection properties.

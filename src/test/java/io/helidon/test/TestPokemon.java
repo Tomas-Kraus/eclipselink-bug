@@ -16,19 +16,20 @@
 package io.helidon.test;
 
 import java.net.URI;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 
 import io.helidon.config.Config;
+import io.helidon.config.ConfigSources;
 import io.helidon.test.data.InitialData;
 import io.helidon.test.jakarta.PersistenceConfig;
+import io.helidon.test.jakarta.PersistenceUtils;
 import io.helidon.test.model.Pokemon;
 
 import jakarta.persistence.EntityManager;
 import jakarta.persistence.EntityManagerFactory;
 import jakarta.persistence.EntityTransaction;
-import jakarta.persistence.Persistence;
-import jakarta.persistence.PersistenceConfiguration;
-import jakarta.persistence.PersistenceUnitTransactionType;
 import org.junit.AfterClass;
 import org.junit.BeforeClass;
 import org.junit.Test;
@@ -42,7 +43,8 @@ import static org.hamcrest.Matchers.is;
 public class TestPokemon {
 
     private static final MySQLContainer<?> CONTAINER = new MySQLContainer<>(DockerImageName.parse("mysql:8.0"));;
-    private static final PersistenceConfig CONFIG = PersistenceConfig.create(Config.create());
+    private static Config CONFIG = Config.just(ConfigSources.classpath("application.yaml"));
+    private static PersistenceConfig PERSISTENCE_CONFIG = PersistenceConfig.create(CONFIG);
     private static EntityManagerFactory EMF = null;
 
     public TestPokemon() {
@@ -60,35 +62,23 @@ public class TestPokemon {
 
     @BeforeClass
     public static void before() {
-        // Container setup startup
-        if (CONFIG.connectionString().isEmpty() || CONFIG.username().isEmpty() || CONFIG.password().isEmpty()) {
-            throw new IllegalStateException("Value of connection-string, username or password is missing in config");
-        }
-        if (CONFIG.jdbcDriverClassName().isEmpty()) {
-            throw new IllegalStateException("Value of jdbc-driver-class-name is missing in config");
-        }
-        CONFIG.username().ifPresent(CONTAINER::withUsername);
-        CONFIG.password().ifPresent(TestPokemon::withPassword);
-        CONFIG.connectionString().ifPresent(TestPokemon::withDatabaseName);
+        // Container setup and startup
+        CONTAINER.withUsername(PERSISTENCE_CONFIG.username());
+        CONTAINER.withPassword(new String(PERSISTENCE_CONFIG.password()));
+        CONTAINER.withDatabaseName(
+                dbNameFromUri(
+                        uriFromDbUrl(PERSISTENCE_CONFIG.connectionString())));
         CONTAINER.start();
+        // Config update
+        Map<String, String> updatedNodes = new HashMap<>(1);
+        String url = replacePortInUrl(PERSISTENCE_CONFIG.connectionString(),
+                                      CONTAINER.getMappedPort(3306));
+        updatedNodes.put("connection-string", url);
+        CONFIG = Config.create(ConfigSources.create(updatedNodes),
+                             ConfigSources.create(CONFIG));
+        PERSISTENCE_CONFIG = PersistenceConfig.create(CONFIG);
         // Persistence provider setup (spec 3.2)
-        String url = replacePortInUrl(CONFIG.connectionString().get(), CONTAINER.getMappedPort(3306));
-        PersistenceConfiguration persistenceConfiguration = new PersistenceConfiguration("test");
-        persistenceConfiguration.provider("org.eclipse.persistence.jpa.PersistenceProvider");
-        persistenceConfiguration.managedClass(io.helidon.test.model.League.class);
-        persistenceConfiguration.managedClass(io.helidon.test.model.Creature.class);
-        persistenceConfiguration.managedClass(io.helidon.test.model.Pokemon.class);
-        persistenceConfiguration.managedClass(io.helidon.test.model.Region.class);
-        persistenceConfiguration.managedClass(io.helidon.test.model.Team.class);
-        persistenceConfiguration.managedClass(io.helidon.test.model.Trainer.class);
-        persistenceConfiguration.managedClass(io.helidon.test.model.Type.class);
-        persistenceConfiguration.transactionType(PersistenceUnitTransactionType.RESOURCE_LOCAL);
-        CONFIG.properties().forEach(persistenceConfiguration::property);
-        persistenceConfiguration.property("jakarta.persistence.jdbc.driver", CONFIG.jdbcDriverClassName().get());
-        persistenceConfiguration.property("jakarta.persistence.jdbc.user", CONFIG.username().get());
-        persistenceConfiguration.property("jakarta.persistence.jdbc.password", new String(CONFIG.password().get()));
-        persistenceConfiguration.property("jakarta.persistence.jdbc.url", url);
-        EMF = Persistence.createEntityManagerFactory(persistenceConfiguration);
+        EMF = PersistenceUtils.createEmf(PERSISTENCE_CONFIG);
         // Initialize data
         try (EntityManager em = EMF.createEntityManager()) {
             EntityTransaction et = em.getTransaction();
@@ -110,15 +100,6 @@ public class TestPokemon {
             EMF.close();
         }
         CONTAINER.stop();
-    }
-
-    private static void withPassword(char[] password) {
-        CONTAINER.withPassword(new String(password));
-    }
-
-    private static void withDatabaseName(String connectionString) {
-        String dbName = dbNameFromUri(uriFromDbUrl(connectionString));
-        CONTAINER.withDatabaseName(dbName);
     }
 
     private static URI uriFromDbUrl(String url) {
