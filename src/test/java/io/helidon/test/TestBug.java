@@ -1,5 +1,6 @@
 /*
  * Copyright (c) 2025 Oracle and/or its affiliates.
+ * Copyright (c) 2025 IBM Corporation. All rights reserved.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -25,38 +26,83 @@ import io.helidon.config.ConfigSources;
 import io.helidon.test.data.InitialData;
 import io.helidon.test.jakarta.PersistenceConfig;
 import io.helidon.test.jakarta.PersistenceUtils;
-import io.helidon.test.model.Pokemon;
+import io.helidon.test.model.House;
 
 import jakarta.persistence.EntityManager;
 import jakarta.persistence.EntityManagerFactory;
 import jakarta.persistence.EntityTransaction;
+import jakarta.persistence.PersistenceException;
 import org.junit.AfterClass;
 import org.junit.BeforeClass;
 import org.junit.Test;
 import org.testcontainers.containers.MySQLContainer;
 import org.testcontainers.utility.DockerImageName;
 
-import static io.helidon.test.data.InitialData.POKEMONS;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.is;
+import static io.helidon.test.data.InitialData.HOUSES;
+import static io.helidon.test.data.InitialData.GARAGES;
 
-public class TestPokemon {
+public class TestBug {
 
     private static final MySQLContainer<?> CONTAINER = new MySQLContainer<>(DockerImageName.parse("mysql:8.0"));;
     private static Config CONFIG = Config.just(ConfigSources.classpath("application.yaml"));
     private static PersistenceConfig PERSISTENCE_CONFIG = PersistenceConfig.create(CONFIG);
     private static EntityManagerFactory EMF = null;
 
-    public TestPokemon() {
+    public TestBug() {
     }
 
     @Test
     public void testSelect() {
         try (EntityManager em = EMF.createEntityManager()) {
-            List<Pokemon> pokemons = em.createNamedQuery("Pokemon.alive", Pokemon.class)
-                    .setParameter("alive", true)
+            List<House> houses = em.createNamedQuery("House.all", House.class)
                     .getResultList();
-            assertThat(pokemons.size(), is(POKEMONS.length - 1));
+            assertThat(houses.size(), is(HOUSES.length));
+        }
+    }
+
+    @Test
+    public void testUpdate() {
+        try (EntityManager em = EMF.createEntityManager()) {
+            EntityTransaction et = em.getTransaction();
+            et.begin();
+            try {
+                em.createQuery("UPDATE House h "
+                                       + "SET h.garage=?2, h.area=h.area+?3, h.kitchen.length=h.kitchen.length+?4, h"
+                                       + ".numBedrooms=?5 "
+                                       + "WHERE (h.parcelId=?1)")
+                        .setParameter(1, "P 001")
+                        .setParameter(2, GARAGES[2])
+                        .setParameter(3, 20)
+                        .setParameter(4, 1)
+                        .setParameter(5, 2)
+                        .executeUpdate();
+                et.commit();
+            } catch (PersistenceException e) {
+                et.rollback();
+            }
+        }
+    }
+
+    @Test
+    public void testShortUpdate() {
+        try (EntityManager em = EMF.createEntityManager()) {
+            EntityTransaction et = em.getTransaction();
+            et.begin();
+            try {
+                em.createQuery("UPDATE House h "
+                                       + "SET h.garage=?2, h.area=h.area+?3, h.numBedrooms=?4 "
+                                       + "WHERE (h.parcelId=?1)")
+                        .setParameter(1, "P 001")
+                        .setParameter(2, GARAGES[2])
+                        .setParameter(3, 20)
+                        .setParameter(4, 2)
+                        .executeUpdate();
+                et.commit();
+            } catch (PersistenceException e) {
+                et.rollback();
+            }
         }
     }
 
