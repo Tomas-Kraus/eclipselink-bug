@@ -33,30 +33,9 @@
 
     <dependencies>
         <dependency>
-            <groupId>io.helidon.common</groupId>
-            <artifactId>helidon-common-config</artifactId>
-        </dependency>
-        <dependency>
-            <groupId>io.helidon.config</groupId>
-            <artifactId>helidon-config-yaml</artifactId>
-        </dependency>
-        <dependency>
-            <groupId>io.helidon.builder</groupId>
-            <artifactId>helidon-builder-api</artifactId>
-        </dependency>
-        <dependency>
-            <groupId>io.helidon.logging</groupId>
-            <artifactId>helidon-logging-common</artifactId>
-        </dependency>
-        <dependency>
             <groupId>jakarta.persistence</groupId>
             <artifactId>jakarta.persistence-api</artifactId>
             <version>3.2.0</version>
-        </dependency>
-        <dependency>
-            <artifactId>helidon-logging-jul</artifactId>
-            <groupId>io.helidon.logging</groupId>
-            <scope>test</scope>
         </dependency>
         <dependency>
             <groupId>org.eclipse.persistence</groupId>

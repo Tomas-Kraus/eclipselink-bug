@@ -17,20 +17,16 @@
 package io.helidon.test;
 
 import java.net.URI;
-import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
-import io.helidon.config.Config;
-import io.helidon.config.ConfigSources;
 import io.helidon.test.data.InitialData;
-import io.helidon.test.jakarta.PersistenceConfig;
-import io.helidon.test.jakarta.PersistenceUtils;
 import io.helidon.test.model.House;
 
 import jakarta.persistence.EntityManager;
 import jakarta.persistence.EntityManagerFactory;
 import jakarta.persistence.EntityTransaction;
+import jakarta.persistence.Persistence;
 import jakarta.persistence.PersistenceException;
 import org.junit.AfterClass;
 import org.junit.BeforeClass;
@@ -38,16 +34,14 @@ import org.junit.Test;
 import org.testcontainers.containers.MySQLContainer;
 import org.testcontainers.utility.DockerImageName;
 
+import static io.helidon.test.data.InitialData.GARAGES;
+import static io.helidon.test.data.InitialData.HOUSES;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.is;
-import static io.helidon.test.data.InitialData.HOUSES;
-import static io.helidon.test.data.InitialData.GARAGES;
 
 public class TestBug {
 
     private static final MySQLContainer<?> CONTAINER = new MySQLContainer<>(DockerImageName.parse("mysql:8.0"));;
-    private static Config CONFIG = Config.just(ConfigSources.classpath("application.yaml"));
-    private static PersistenceConfig PERSISTENCE_CONFIG = PersistenceConfig.create(CONFIG);
     private static EntityManagerFactory EMF = null;
 
     public TestBug() {
@@ -109,22 +103,15 @@ public class TestBug {
     @BeforeClass
     public static void before() {
         // Container setup and startup
-        CONTAINER.withUsername(PERSISTENCE_CONFIG.username());
-        CONTAINER.withPassword(new String(PERSISTENCE_CONFIG.password()));
-        CONTAINER.withDatabaseName(
-                dbNameFromUri(
-                        uriFromDbUrl(PERSISTENCE_CONFIG.connectionString())));
+        CONTAINER.withUsername("test");
+        CONTAINER.withPassword("password");
+        CONTAINER.withDatabaseName("testdb");
+        CONTAINER.addExposedPorts(MySQLContainer.MYSQL_PORT);
         CONTAINER.start();
-        // Config update
-        Map<String, String> updatedNodes = new HashMap<>(1);
-        String url = replacePortInUrl(PERSISTENCE_CONFIG.connectionString(),
-                                      CONTAINER.getMappedPort(3306));
-        updatedNodes.put("connection-string", url);
-        CONFIG = Config.create(ConfigSources.create(updatedNodes),
-                             ConfigSources.create(CONFIG));
-        PERSISTENCE_CONFIG = PersistenceConfig.create(CONFIG);
-        // Persistence provider setup (spec 3.2)
-        EMF = PersistenceUtils.createEmf(PERSISTENCE_CONFIG);
+        // Persistence provider setup with "jakarta.persistence.jdbc.url" override
+        Map<String, String> properties = Map.of("jakarta.persistence.jdbc.url",
+                                     "jdbc:mysql://localhost:" + CONTAINER.getMappedPort(MySQLContainer.MYSQL_PORT) + "/testdb");
+        EMF = Persistence.createEntityManagerFactory("test_2362", properties);
         // Initialize data
         try (EntityManager em = EMF.createEntityManager()) {
             EntityTransaction et = em.getTransaction();

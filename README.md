@@ -14,12 +14,17 @@
 
 # EclipseLink bug test
 
-Simple application to reproduce EclipseLink bug based on _Docker_, _Helidon_, _Testcontainers for Java_
+Simple application to reproduce EclipseLink bug based on _Docker_, _Testcontainers for Java_
 and _EclipseLink_.
+
+## Build
+
+Requires EclipseLink master branch build locally because of EclipseLink 5.0.0-SNAPSHOT dependency.
 
 ## Usage
 
 To run the test, make sure you have Docker running and simply run maven build:
+
 ```
     mvn clean verify
 ```
